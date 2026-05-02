@@ -399,6 +399,33 @@
                   "HIGH"
                 ]
               }
+            },
+            {
+              "id": "stripe-secret-token",
+              "name": "Secret",
+              "shortDescription": {
+                "text": "Stripe Secret Key"
+              },
+              "fullDescription": {
+                "text": "STRIPE_KEY = \"********************************\""
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "helpUri": "https://github.com/aquasecurity/trivy/blob/main/pkg/fanal/secret/builtin-rules.go",
+              "help": {
+                "text": "Secret Stripe Secret Key\nSeverity: CRITICAL\nMatch: STRIPE_KEY = \"********************************\"",
+                "markdown": "**Secret Stripe Secret Key**\n| Severity | Match |\n| --- | --- |\n|CRITICAL|STRIPE_KEY = \"********************************\"|"
+              },
+              "properties": {
+                "precision": "very-high",
+                "security-severity": "9.5",
+                "tags": [
+                  "secret",
+                  "security",
+                  "CRITICAL"
+                ]
+              }
             }
           ],
           "version": "0.69.3"
@@ -755,12 +782,66 @@
               }
             }
           ]
+        },
+        {
+          "ruleId": "stripe-secret-token",
+          "ruleIndex": 13,
+          "level": "error",
+          "message": {
+            "text": "Artifact: security/reports/gitleaks-results.sarif\nType: \nSecret Stripe Secret Key\nSeverity: CRITICAL\nMatch:           \"text\": \"********************************\""
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "security/reports/gitleaks-results.sarif",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 1365,
+                  "startColumn": 1,
+                  "endLine": 1365,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "security/reports/gitleaks-results.sarif"
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "stripe-secret-token",
+          "ruleIndex": 13,
+          "level": "error",
+          "message": {
+            "text": "Artifact: src/app.py\nType: \nSecret Stripe Secret Key\nSeverity: CRITICAL\nMatch: STRIPE_KEY = \"********************************\""
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.py",
+                  "uriBaseId": "ROOTPATH"
+                },
+                "region": {
+                  "startLine": 22,
+                  "startColumn": 1,
+                  "endLine": 22,
+                  "endColumn": 1
+                }
+              },
+              "message": {
+                "text": "src/app.py"
+              }
+            }
+          ]
         }
       ],
       "columnKind": "utf16CodeUnits",
       "originalUriBaseIds": {
         "ROOTPATH": {
-          "uri": "file://C:\\Users\\User\\Desktop\\meu-aspm/"
+          "uri": "file:///"
         }
       }
     }

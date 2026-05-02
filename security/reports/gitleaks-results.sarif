@@ -1344,7 +1344,42 @@
      ]
     }
    },
-   "results": []
+   "results": [
+    {
+     "message": {
+      "text": "stripe-access-token has detected secret for file C:/Users/User/Desktop/meu-aspm/src/app.py."
+     },
+     "ruleId": "stripe-access-token",
+     "locations": [
+      {
+       "physicalLocation": {
+        "artifactLocation": {
+         "uri": "C:/Users/User/Desktop/meu-aspm/src/app.py"
+        },
+        "region": {
+         "startLine": 22,
+         "startColumn": 16,
+         "endLine": 22,
+         "endColumn": 48,
+         "snippet": {
+          "text": "sk_live_4eC39HqLyjWDarjtT1zdp7dc"
+         }
+        }
+       }
+      }
+     ],
+     "partialFingerprints": {
+      "commitSha": "",
+      "email": "",
+      "author": "",
+      "date": "",
+      "commitMessage": ""
+     },
+     "properties": {
+      "tags": []
+     }
+    }
+   ]
   }
  ]
 }

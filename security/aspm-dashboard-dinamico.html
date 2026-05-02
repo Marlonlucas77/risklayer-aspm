@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASPM Dashboard — Dinâmico</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #131920;
+    --border: #1e2d3d;
+    --accent: #00e5ff;
+    --accent2: #ff4757;
+    --accent3: #ffa502;
+    --accent4: #2ed573;
+    --critical: #ff4757;
+    --high: #ff6b35;
+    --warning: #ffa502;
+    --text: #c9d1d9;
+    --text-dim: #58697a;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 0 20px;
+    margin-bottom: 36px;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 180px; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 20px var(--accent);
+  }
+  .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 38px; height: 38px;
+    border: 1px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 14px rgba(0,229,255,0.25);
+  }
+  .logo-text { font-size: 20px; font-weight: 800; letter-spacing: 4px; color: #fff; text-transform: uppercase; }
+  .logo-sub { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 2px; margin-top: 2px; }
+  .scan-time { font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align: right; line-height: 1.9; }
+  .scan-time span { color: var(--accent); }
+
+  /* UPLOAD ZONE */
+  #upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    border: 2px dashed var(--border);
+    background: var(--surface);
+    transition: border-color 0.3s, background 0.3s;
+    cursor: pointer;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  #upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+  #upload-zone.done { display: none; }
+  .upload-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.6; }
+  .upload-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .upload-sub { font-family: var(--mono); font-size: 12px; color: var(--text-dim); text-align: center; line-height: 1.8; }
+  .upload-hint { margin-top: 20px; font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 1px; }
+
+  .file-slots {
+    display: flex;
+    gap: 16px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .file-slot {
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.3s, color 0.3s;
+  }
+  .file-slot.loaded { border-color: var(--accent4); color: var(--accent4); }
+  .file-slot .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .file-slot.loaded .dot { background: var(--accent4); box-shadow: 0 0 6px var(--accent4); }
+
+  .upload-btn {
+    margin-top: 20px;
+    padding: 10px 28px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    text-transform: uppercase;
+  }
+  .upload-btn:hover { background: var(--accent); color: var(--bg); }
+
+  #file-input { display: none; }
+
+  /* DASHBOARD */
+  #dashboard { display: none; }
+  #dashboard.visible { display: block; animation: fadeIn 0.5s ease; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* OVERVIEW */
+  .overview {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: center;
+    margin-bottom: 40px;
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .overview::before {
+    content: 'SECURITY POSTURE';
+    position: absolute; top: 14px; right: 18px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--text-dim); letter-spacing: 3px;
+  }
+  .score-ring { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring-text {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .score-number { font-size: 38px; font-weight: 800; color: var(--accent2); line-height: 1; }
+  .score-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 2px; margin-top: 4px; }
+  .overview-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+  .stat-box {
+    padding: 18px; background: var(--surface2);
+    border: 1px solid var(--border); border-top: 2px solid;
+    text-align: center; transition: transform 0.2s;
+  }
+  .stat-box:hover { transform: translateY(-2px); }
+  .stat-box.critical { border-top-color: var(--critical); }
+  .stat-box.high { border-top-color: var(--high); }
+  .stat-box.medium { border-top-color: var(--warning); }
+  .stat-box.ok { border-top-color: var(--accent4); }
+  .stat-num { font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+  .stat-box.critical .stat-num { color: var(--critical); }
+  .stat-box.high .stat-num { color: var(--high); }
+  .stat-box.medium .stat-num { color: var(--warning); }
+  .stat-box.ok .stat-num { color: var(--accent4); }
+  .stat-name { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 2px; }
+
+  /* SENSOR CARDS */
+  .sensor-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-bottom: 36px; }
+  .sensor-card { background: var(--surface); border: 1px solid var(--border); transition: border-color 0.3s; }
+  .sensor-card:hover { border-color: var(--accent); }
+  .sensor-header {
+    padding: 14px 18px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .sensor-icon { font-size: 18px; }
+  .sensor-name { font-weight: 700; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .sensor-tool { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+  .sensor-badge { margin-left: auto; font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 3px 8px; border: 1px solid; }
+  .badge-red { color: var(--critical); border-color: var(--critical); background: rgba(255,71,87,0.1); }
+  .badge-orange { color: var(--warning); border-color: var(--warning); background: rgba(255,165,2,0.1); }
+  .badge-green { color: var(--accent4); border-color: var(--accent4); background: rgba(46,213,115,0.1); }
+  .sensor-body { padding: 14px 18px; }
+  .sensor-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .sensor-row:last-child { border-bottom: none; }
+  .sensor-row-label { color: var(--text-dim); font-family: var(--mono); font-size: 10px; }
+  .sensor-row-val { font-weight: 600; font-family: var(--mono); font-size: 11px; }
+
+  /* SECTION */
+  .section { margin-bottom: 36px; }
+  .section-title {
+    font-size: 11px; font-family: var(--mono); letter-spacing: 3px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* FILTER BAR */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 5px 14px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .filter-btn.active-critical { background: var(--critical); color: #fff; border-color: var(--critical); }
+  .filter-btn.active-high { background: var(--high); color: #fff; border-color: var(--high); }
+  .filter-btn.active-medium { background: var(--warning); color: var(--bg); border-color: var(--warning); }
+
+  /* TABLE */
+  .findings-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .findings-table th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    color: var(--text-dim); text-transform: uppercase;
+    padding: 9px 14px; text-align: left;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .findings-table td { padding: 11px 14px; border: 1px solid var(--border); vertical-align: top; background: var(--surface); }
+  .findings-table tr:hover td { background: var(--surface2); }
+  .findings-table tr.hidden { display: none; }
+
+  .sev-badge {
+    display: inline-block; font-family: var(--mono);
+    font-size: 10px; font-weight: 700; padding: 2px 7px; letter-spacing: 1px;
+  }
+  .sev-critical { background: rgba(255,71,87,0.15); color: var(--critical); border: 1px solid var(--critical); }
+  .sev-high { background: rgba(255,107,53,0.15); color: var(--high); border: 1px solid var(--high); }
+  .sev-medium { background: rgba(255,165,2,0.15); color: var(--warning); border: 1px solid var(--warning); }
+  .sev-low { background: rgba(46,213,115,0.1); color: var(--accent4); border: 1px solid var(--accent4); }
+
+  .rule-id { font-family: var(--mono); font-size: 11px; color: var(--accent); word-break: break-all; }
+  .file-loc { font-family: var(--mono); font-size: 11px; color: var(--accent4); }
+  .sensor-tag { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border: 1px solid var(--border); color: var(--text-dim); }
+  .msg-text { font-size: 12px; color: var(--text); line-height: 1.5; max-width: 380px; }
+
+  /* RESET BTN */
+  .reset-btn {
+    padding: 7px 18px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .reset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .pulse { display: inline-block; width: 7px; height: 7px; background: var(--accent4); border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(46,213,115,0.4)} 50%{opacity:.7;box-shadow:0 0 0 5px rgba(46,213,115,0)} }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 20px 0; margin-top: 36px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    flex-wrap: wrap; gap: 8px;
+  }
+
+  @media(max-width:900px){
+    .sensor-grid{grid-template-columns:1fr}
+    .overview{grid-template-columns:1fr}
+    .overview-stats{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-row">
+      <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <div>
+          <div class="logo-text">ASPM</div>
+          <div class="logo-sub">Application Security Posture Management</div>
+        </div>
+      </div>
+      <div class="scan-time" id="scan-meta">
+        <div>AGUARDANDO <span>arquivos SARIF</span></div>
+        <div>STATUS <span style="color:var(--text-dim)">—</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- UPLOAD ZONE -->
+  <div id="upload-zone">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Arraste os 3 arquivos SARIF aqui</div>
+    <div class="upload-sub">
+      trivy-results.sarif &nbsp;·&nbsp; semgrep-results.sarif &nbsp;·&nbsp; gitleaks-results.sarif<br>
+      Ou clique para selecionar os arquivos manualmente
+    </div>
+    <div class="file-slots">
+      <div class="file-slot" id="slot-trivy"><div class="dot"></div> trivy-results.sarif</div>
+      <div class="file-slot" id="slot-semgrep"><div class="dot"></div> semgrep-results.sarif</div>
+      <div class="file-slot" id="slot-gitleaks"><div class="dot"></div> gitleaks-results.sarif</div>
+    </div>
+    <div class="upload-hint">↑ Arraste qualquer .sarif — o dashboard detecta o sensor automaticamente</div>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">Selecionar Arquivos</button>
+    <input type="file" id="file-input" multiple accept=".sarif,.json">
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard">
+    <button class="reset-btn" onclick="resetDashboard()">↺ Carregar novos arquivos</button>
+
+    <!-- OVERVIEW -->
+    <div class="overview">
+      <div class="score-ring">
+        <svg id="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="55" fill="none" stroke="#1e2d3d" stroke-width="9"/>
+          <circle id="ring-fill" cx="70" cy="70" r="55" fill="none" stroke="#ff4757" stroke-width="9"
+            stroke-dasharray="345" stroke-dashoffset="345" stroke-linecap="round"
+            style="transition: stroke-dashoffset 1s ease"/>
+        </svg>
+        <div class="score-ring-text">
+          <div class="score-number" id="total-count">0</div>
+          <div class="score-label">FINDINGS</div>
+        </div>
+      </div>
+      <div class="overview-stats">
+        <div class="stat-box critical"><div class="stat-num" id="cnt-critical">0</div><div class="stat-name">Critical</div></div>
+        <div class="stat-box high"><div class="stat-num" id="cnt-high">0</div><div class="stat-name">High</div></div>
+        <div class="stat-box medium"><div class="stat-num" id="cnt-medium">0</div><div class="stat-name">Medium</div></div>
+        <div class="stat-box ok"><div class="stat-num" id="cnt-sensors">0</div><div class="stat-name">Sensores OK</div></div>
+      </div>
+    </div>
+
+    <!-- SENSOR CARDS -->
+    <div class="section">
+      <div class="section-title">Sensores Ativos</div>
+      <div class="sensor-grid" id="sensor-cards"></div>
+    </div>
+
+    <!-- FINDINGS TABLE -->
+    <div class="section">
+      <div class="section-title">Todos os Findings</div>
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-btn active" data-filter="all" onclick="filterFindings(this,'all')">Todos</button>
+        <button class="filter-btn" data-filter="CRITICAL" onclick="filterFindings(this,'CRITICAL')">Critical</button>
+        <button class="filter-btn" data-filter="HIGH" onclick="filterFindings(this,'HIGH')">High</button>
+        <button class="filter-btn" data-filter="MEDIUM" onclick="filterFindings(this,'MEDIUM')">Medium</button>
+        <button class="filter-btn" data-filter="SCA" onclick="filterFindings(this,'SCA')">SCA</button>
+        <button class="filter-btn" data-filter="SAST" onclick="filterFindings(this,'SAST')">SAST</button>
+        <button class="filter-btn" data-filter="SECRETS" onclick="filterFindings(this,'SECRETS')">Secrets</button>
+      </div>
+      <table class="findings-table">
+        <thead>
+          <tr>
+            <th>Sensor</th>
+            <th>Severidade</th>
+            <th>Regra / CVE</th>
+            <th>Arquivo</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody id="findings-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <div><span class="pulse"></span> ASPM Dashboard — Dinâmico</div>
+    <div id="footer-tools">Aguardando arquivos SARIF...</div>
+    <div id="footer-date">—</div>
+  </footer>
+
+</div>
+
+<script>
+  const state = { trivy: null, semgrep: null, gitleaks: null };
+
+  // ─── DRAG & DROP ───────────────────────────────────────
+  const zone = document.getElementById('upload-zone');
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    handleFiles([...e.dataTransfer.files]);
+  });
+  zone.addEventListener('click', e => {
+    if (e.target.classList.contains('upload-btn') || e.target === document.getElementById('file-input')) return;
+    document.getElementById('file-input').click();
+  });
+  document.getElementById('file-input').addEventListener('change', e => handleFiles([...e.target.files]));
+
+  function handleFiles(files) {
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          const sensor = detectSensor(file.name, data);
+          if (sensor) {
+            state[sensor] = data;
+            document.getElementById('slot-' + sensor).classList.add('loaded');
+          }
+          if (state.trivy || state.semgrep || state.gitleaks) renderDashboard();
+        } catch(err) { alert('Erro ao ler ' + file.name + ': JSON inválido'); }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function detectSensor(filename, data) {
+    const f = filename.toLowerCase();
+    if (f.includes('trivy')) return 'trivy';
+    if (f.includes('semgrep')) return 'semgrep';
+    if (f.includes('gitleaks')) return 'gitleaks';
+    // fallback: detect by tool name inside sarif
+    try {
+      const toolName = data.runs[0].tool.driver.name.toLowerCase();
+      if (toolName.includes('trivy')) return 'trivy';
+      if (toolName.includes('semgrep')) return 'semgrep';
+      if (toolName.includes('gitleaks')) return 'gitleaks';
+    } catch(e) {}
+    return null;
+  }
+
+  // ─── PARSE SARIF ──────────────────────────────────────
+  function getResults(sarifData) {
+    if (!sarifData) return [];
+    const results = [];
+    for (const run of (sarifData.runs || [])) {
+      for (const r of (run.results || [])) {
+        const locs = r.locations || [];
+        let file = '', line = '';
+        if (locs[0]) {
+          const pl = locs[0].physicalLocation || {};
+          file = (pl.artifactLocation || {}).uri || '';
+          line = ((pl.region || {}).startLine || '');
+          // clean path
+          file = file.replace(/^.*[\/\\]src[\/\\]/, 'src/').replace(/^.*[\/\\]/, '');
+        }
+        const msg = (r.message || {}).text || '';
+        const level = r.level || 'warning';
+        results.push({ ruleId: r.ruleId || '', level, msg: msg.split('\n')[0], file, line });
+      }
+    }
+    return results;
+  }
+
+  function levelToSev(level, ruleId) {
+    if (level === 'error') {
+      // check if critical by keywords
+      if (ruleId && (ruleId.toLowerCase().includes('critical') || level === 'error')) return 'CRITICAL';
+      return 'HIGH';
+    }
+    if (level === 'warning') return 'MEDIUM';
+    return 'LOW';
+  }
+
+  function getSeverityFromMsg(msg, level) {
+    const m = msg.toUpperCase();
+    if (m.includes('SEVERITY: CRITICAL')) return 'CRITICAL';
+    if (m.includes('SEVERITY: HIGH')) return 'HIGH';
+    if (m.includes('SEVERITY: MEDIUM')) return 'MEDIUM';
+    if (m.includes('SEVERITY: LOW')) return 'LOW';
+    return level === 'error' ? 'HIGH' : 'MEDIUM';
+  }
+
+  // ─── RENDER ──────────────────────────────────────────
+  function renderDashboard() {
+    const trivyRes = getResults(state.trivy).map(r => ({ ...r, sensor: 'SCA', sev: getSeverityFromMsg(r.msg, r.level) }));
+    const semgrepRes = getResults(state.semgrep).map(r => ({ ...r, sensor: 'SAST', sev: 'MEDIUM' }));
+    const gitleaksRes = getResults(state.gitleaks).map(r => ({ ...r, sensor: 'SECRETS', sev: 'HIGH' }));
+
+    const all = [...trivyRes, ...semgrepRes, ...gitleaksRes];
+    const total = all.length;
+    const critical = all.filter(r => r.sev === 'CRITICAL').length;
+    const high = all.filter(r => r.sev === 'HIGH').length;
+    const medium = all.filter(r => r.sev === 'MEDIUM').length;
+    const sensorsOk = [state.trivy, state.semgrep, state.gitleaks].filter(Boolean).length;
+
+    // counters
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('cnt-critical').textContent = critical;
+    document.getElementById('cnt-high').textContent = high;
+    document.getElementById('cnt-medium').textContent = medium;
+    document.getElementById('cnt-sensors').textContent = sensorsOk;
+
+    // ring animation
+    const circ = 2 * Math.PI * 55;
+    const fill = total > 0 ? Math.min((total / 20), 1) * circ : 0;
+    setTimeout(() => {
+      document.getElementById('ring-fill').style.strokeDashoffset = circ - fill;
+    }, 100);
+
+    // meta
+    const now = new Date();
+    document.getElementById('scan-meta').innerHTML =
+      `<div>PROJETO <span>local</span></div>
+       <div>FINDINGS <span style="color:var(--accent2)">${total} detectados</span></div>
+       <div>CARREGADO <span>${now.toLocaleTimeString('pt-BR')}</span></div>`;
+
+    // sensor cards
+    renderSensorCards(trivyRes, semgrepRes, gitleaksRes);
+
+    // table
+    renderTable(all);
+
+    // footer
+    const tools = [];
+    if (state.trivy) { try { tools.push('Trivy ' + state.trivy.runs[0].tool.driver.version); } catch(e) { tools.push('Trivy'); } }
+    if (state.semgrep) { try { tools.push('Semgrep ' + state.semgrep.runs[0].tool.driver.version); } catch(e) { tools.push('Semgrep'); } }
+    if (state.gitleaks) { try { tools.push('Gitleaks ' + state.gitleaks.runs[0].tool.driver.version); } catch(e) { tools.push('Gitleaks'); } }
+    document.getElementById('footer-tools').textContent = tools.join(' · ');
+    document.getElementById('footer-date').textContent = now.toLocaleDateString('pt-BR');
+
+    document.getElementById('upload-zone').classList.add('done');
+    document.getElementById('dashboard').classList.add('visible');
+  }
+
+  function renderSensorCards(trivy, semgrep, gitleaks) {
+    const cards = [];
+
+    if (state.trivy) {
+      const crit = trivy.filter(r => r.sev === 'CRITICAL').length;
+      const high = trivy.filter(r => r.sev === 'HIGH').length;
+      const pkgs = [...new Set(trivy.map(r => r.msg.match(/Package: (\S+)/)?.[1]).filter(Boolean))];
+      cards.push(`
+        <div class="sensor-card">
+          <div class="sensor-header">
+            <div class="sensor-icon">📦</div>
+            <div><div class="sensor-name">SCA — Trivy</div><div class="sensor-tool">Software Composition Analysis</div></div>
+            <div class="sensor-badge badge-red">${trivy.length} CVEs</div>
+          </div>
+          <div class="sensor-body">
+            <div class="sensor-row"><span class="sensor-row-label">CRITICAL</span><span class="sensor-row-val" style="color:var(--critical)">${crit}</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">HIGH</span><span class="sensor-row-val" style="color:var(--high)">${high}</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">PACOTES</span><span class="sensor-row-val">${pkgs.slice(0,4).join(', ') || '—'}</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">FORMATO</span><span class="sensor-row-val" style="color:var(--accent)">SARIF 2.1.0</span></div>
+          </div>
+        </div>`);
+    }
+
+    if (state.semgrep) {
+      const rulesRan = (() => { try { return state.semgrep.runs[0].tool.driver.rules.length; } catch(e) { return '—'; } })();
+      cards.push(`
+        <div class="sensor-card">
+          <div class="sensor-header">
+            <div class="sensor-icon">🔍</div>
+            <div><div class="sensor-name">SAST — Semgrep</div><div class="sensor-tool">Static Application Security Testing</div></div>
+            <div class="sensor-badge badge-orange">${semgrep.length} findings</div>
+          </div>
+          <div class="sensor-body">
+            <div class="sensor-row"><span class="sensor-row-label">FINDINGS</span><span class="sensor-row-val" style="color:var(--warning)">${semgrep.length}</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">REGRAS EXECUTADAS</span><span class="sensor-row-val">${rulesRan}</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">SEVERIDADE</span><span class="sensor-row-val">Medium</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">FORMATO</span><span class="sensor-row-val" style="color:var(--accent)">SARIF 2.1.0</span></div>
+          </div>
+        </div>`);
+    }
+
+    if (state.gitleaks) {
+      const rulesRan = (() => { try { return state.gitleaks.runs[0].tool.driver.rules.length; } catch(e) { return '—'; } })();
+      const badge = gitleaks.length === 0 ? 'badge-green' : 'badge-orange';
+      const badgeText = gitleaks.length === 0 ? 'Limpo' : `${gitleaks.length} leak${gitleaks.length > 1 ? 's' : ''}`;
+      cards.push(`
+        <div class="sensor-card">
+          <div class="sensor-header">
+            <div class="sensor-icon">🔑</div>
+            <div><div class="sensor-name">Secrets — Gitleaks</div><div class="sensor-tool">Secret Scanning</div></div>
+            <div class="sensor-badge ${badge}">${badgeText}</div>
+          </div>
+          <div class="sensor-body">
+            <div class="sensor-row"><span class="sensor-row-label">LEAKS</span><span class="sensor-row-val" style="color:${gitleaks.length > 0 ? 'var(--critical)' : 'var(--accent4)'}">${gitleaks.length}</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">PADRÕES ATIVOS</span><span class="sensor-row-val">${rulesRan}</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">SEVERIDADE</span><span class="sensor-row-val">High</span></div>
+            <div class="sensor-row"><span class="sensor-row-label">FORMATO</span><span class="sensor-row-val" style="color:var(--accent)">SARIF 2.1.0</span></div>
+          </div>
+        </div>`);
+    }
+
+    document.getElementById('sensor-cards').innerHTML = cards.join('');
+  }
+
+  function sevClass(sev) {
+    if (sev === 'CRITICAL') return 'sev-critical';
+    if (sev === 'HIGH') return 'sev-high';
+    if (sev === 'MEDIUM') return 'sev-medium';
+    return 'sev-low';
+  }
+
+  function renderTable(all) {
+    const tbody = document.getElementById('findings-tbody');
+    tbody.innerHTML = all.map((r, i) => `
+      <tr data-sev="${r.sev}" data-sensor="${r.sensor}">
+        <td><span class="sensor-tag">${r.sensor}</span></td>
+        <td><span class="sev-badge ${sevClass(r.sev)}">${r.sev}</span></td>
+        <td><span class="rule-id">${r.ruleId}</span></td>
+        <td><span class="file-loc">${r.file}${r.line ? ':' + r.line : ''}</span></td>
+        <td><span class="msg-text">${r.msg.substring(0, 120)}${r.msg.length > 120 ? '...' : ''}</span></td>
+      </tr>`).join('');
+  }
+
+  function filterFindings(btn, filter) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active','active-critical','active-high','active-medium'));
+    if (filter === 'CRITICAL') btn.classList.add('active-critical');
+    else if (filter === 'HIGH') btn.classList.add('active-high');
+    else if (filter === 'MEDIUM') btn.classList.add('active-medium');
+    else btn.classList.add('active');
+
+    document.querySelectorAll('#findings-tbody tr').forEach(row => {
+      const sev = row.dataset.sev;
+      const sensor = row.dataset.sensor;
+      const show = filter === 'all' || sev === filter || sensor === filter;
+      row.classList.toggle('hidden', !show);
+    });
+  }
+
+  function resetDashboard() {
+    state.trivy = null; state.semgrep = null; state.gitleaks = null;
+    ['trivy','semgrep','gitleaks'].forEach(s => document.getElementById('slot-' + s).classList.remove('loaded'));
+    document.getElementById('upload-zone').classList.remove('done');
+    document.getElementById('dashboard').classList.remove('visible');
+    document.getElementById('file-input').value = '';
+  }
+</script>
+</body>
+</html>

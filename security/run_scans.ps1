@@ -82,4 +82,18 @@ Get-ChildItem -Path $reportsDir -Filter "*.sarif" | ForEach-Object {
     $size = [math]::Round($_.Length / 1KB, 2)
     Write-Host "  📄 $($_.Name) ($size KB)" -ForegroundColor White
 }
+
+# Abrir dashboard automaticamente após o scan
+$dashboardPath = "$PSScriptRoot\aspm-dashboard-dinamico.html"
+if (Test-Path $dashboardPath) {
+    Start-Process $dashboardPath
+    Write-Host "  🌐 Dashboard aberto no navegador!" -ForegroundColor Cyan
+} else {
+    Write-Host "  ⚠ Dashboard não encontrado em: $dashboardPath" -ForegroundColor Yellow
+}
+# Enviar notificação por email
+Write-Host ""
+Write-Host "  📧 Enviando notificação por email..." -ForegroundColor Yellow
+python "$PSScriptRoot\notify.py"
+
 Write-Host ""

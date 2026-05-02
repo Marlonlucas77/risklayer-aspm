@@ -1,0 +1,10 @@
+# Não subir relatórios SARIF (podem conter dados sensíveis)
+security/reports/
+
+# Não subir o script de notificação com senha de email
+security/notify.py
+
+# Python
+__pycache__/
+*.pyc
+.env
