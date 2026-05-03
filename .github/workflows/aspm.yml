@@ -36,7 +36,10 @@ jobs:
       - name: SAST — Semgrep
         run: |
           pip install semgrep
-          semgrep scan . --config=auto --sarif --output semgrep-results.sarif || true
+          semgrep scan . --config=auto --sarif --output semgrep-results.sarif
+          echo "Semgrep exit: $?"
+          ls -la semgrep-results.sarif || echo "SARIF não gerado"
+        continue-on-error: true
 
       - name: Upload Semgrep SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -46,14 +49,22 @@ jobs:
           category: semgrep-sast
 
       - name: Secrets — Gitleaks
+        id: gitleaks
         uses: gitleaks/gitleaks-action@v2
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: Renomear SARIF do Gitleaks
+        if: always()
+        run: |
+          ls -la *.sarif 2>/dev/null || echo "Nenhum SARIF encontrado"
+          [ -f results.sarif ] && mv results.sarif gitleaks-results.sarif || echo "results.sarif não existe"
 
       - name: Upload Gitleaks SARIF
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: results.sarif
+          sarif_file: gitleaks-results.sarif
           category: gitleaks-secrets
