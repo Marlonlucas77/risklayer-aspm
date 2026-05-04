@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risklayer — Central de Segurança</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Bebas+Neue&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --preto:    #04070b;
+  --fundo:    #070d14;
+  --painel:   #0a131d;
+  --painel2:  #0d1923;
+  --borda:    rgba(0,180,220,0.10);
+  --borda2:   rgba(0,180,220,0.28);
+  --ciano:    #00b4dc;
+  --ciano2:   rgba(0,180,220,0.5);
+  --vermelho: #e8334a;
+  --laranja:  #f07030;
+  --amarelo:  #e8c030;
+  --verde:    #28c870;
+  --texto:    #b8d0e0;
+  --texto2:   #4a6878;
+  --texto3:   #243040;
+  --mono:     'IBM Plex Mono', monospace;
+  --titulo:   'Bebas Neue', cursive;
+  --corpo:    'IBM Plex Sans', sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+html{scroll-behavior:smooth;}
+
+body{
+  background:var(--preto);
+  color:var(--texto);
+  font-family:var(--corpo);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* FUNDO — grade animada */
+body::before{
+  content:'';
+  position:fixed;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(0,180,220,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,180,220,.018) 1px,transparent 1px);
+  background-size:60px 60px;
+  animation:moverGrade 30s linear infinite;
+  pointer-events:none;
+}
+@keyframes moverGrade{0%{background-position:0 0}100%{background-position:60px 60px}}
+
+/* Brilho central suave */
+body::after{
+  content:'';
+  position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(0,80,140,.12) 0%,transparent 65%);
+  pointer-events:none;
+}
+
+/* LINHA VARREDURA */
+.varredura{
+  position:fixed;top:-2px;left:0;right:0;height:2px;z-index:999;
+  background:linear-gradient(90deg,transparent 0%,var(--ciano) 50%,transparent 100%);
+  opacity:.7;
+  animation:varrer 5s linear infinite;
+  pointer-events:none;
+}
+@keyframes varrer{0%{top:-2px}100%{top:100vh}}
+
+/* CONTAINER */
+.c{max-width:1320px;margin:0 auto;padding:0 32px;position:relative;z-index:1;}
+
+/* ══════════ CABEÇALHO ══════════ */
+header{
+  padding:22px 0 18px;
+  border-bottom:1px solid var(--borda);
+  margin-bottom:28px;
+  position:relative;
+}
+header::after{
+  content:'';
+  position:absolute;bottom:-1px;left:0;
+  width:280px;height:1px;
+  background:linear-gradient(90deg,var(--ciano),transparent);
+  filter:drop-shadow(0 0 8px var(--ciano));
+}
+
+.cab{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+
+.marca{display:flex;align-items:center;gap:14px;}
+
+/* Losango animado */
+.losango{
+  width:44px;height:44px;
+  position:relative;
+  flex-shrink:0;
+}
+.losango-externo,.losango-interno{
+  position:absolute;inset:0;
+  border:1px solid var(--ciano);
+  transform:rotate(45deg);
+}
+.losango-externo{
+  opacity:.3;
+  animation:girar 8s linear infinite;
+}
+.losango-interno{
+  inset:8px;
+  background:rgba(0,180,220,.06);
+  animation:girar 8s linear infinite reverse;
+}
+@keyframes girar{0%{transform:rotate(45deg)}100%{transform:rotate(405deg)}}
+.losango-centro{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;z-index:1;
+}
+
+.marca-nome{
+  font-family:var(--titulo);
+  font-size:28px;letter-spacing:6px;
+  color:#fff;line-height:1;
+}
+.marca-sub{
+  font-family:var(--mono);
+  font-size:9px;color:var(--ciano);
+  letter-spacing:3px;margin-top:4px;
+  text-transform:uppercase;
+}
+
+.cab-meta{
+  display:flex;flex-direction:column;
+  align-items:flex-end;gap:5px;
+}
+.meta-linha{
+  font-family:var(--mono);
+  font-size:10px;color:var(--texto2);
+  display:flex;align-items:center;gap:8px;
+}
+.meta-linha .v{color:var(--ciano);}
+.meta-linha .v.alerta{color:var(--vermelho);animation:piscar 1.2s step-end infinite;}
+@keyframes piscar{50%{opacity:.2}}
+
+.ponto-verde{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--verde);
+  box-shadow:0 0 8px var(--verde);
+  animation:pulsar 2s ease-in-out infinite;
+}
+@keyframes pulsar{0%,100%{transform:scale(1)}50%{transform:scale(1.5)}}
+
+/* ══════════ FAIXA DE TERMOS ══════════ */
+.faixa{
+  border-top:1px solid var(--borda);
+  border-bottom:1px solid var(--borda);
+  padding:8px 0;margin-bottom:28px;
+  overflow:hidden;position:relative;
+}
+.faixa::before,.faixa::after{
+  content:'';position:absolute;top:0;width:80px;height:100%;z-index:2;
+}
+.faixa::before{left:0;background:linear-gradient(90deg,var(--preto),transparent);}
+.faixa::after{right:0;background:linear-gradient(270deg,var(--preto),transparent);}
+.faixa-interna{
+  display:flex;gap:48px;width:max-content;
+  animation:rolar 22s linear infinite;
+}
+.termo{
+  font-family:var(--mono);font-size:10px;
+  color:var(--texto2);white-space:nowrap;
+  display:flex;align-items:center;gap:8px;
+}
+.termo .dest{color:var(--ciano);}
+@keyframes rolar{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ══════════ ZONA DE ENVIO ══════════ */
+#zona-envio{
+  min-height:260px;
+  border:1px solid var(--borda);
+  background:var(--painel);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  cursor:pointer;position:relative;
+  overflow:hidden;margin-bottom:28px;
+  transition:border-color .3s,background .3s;
+}
+#zona-envio:hover,#zona-envio.arrastando{
+  border-color:var(--ciano2);
+  background:rgba(0,180,220,.03);
+}
+#zona-envio.pronto{display:none;}
+
+/* Cantos decorativos */
+.canto{position:absolute;width:18px;height:18px;border-color:var(--ciano);border-style:solid;}
+.canto-tse{top:12px;left:12px;border-width:2px 0 0 2px;}
+.canto-tsd{top:12px;right:12px;border-width:2px 2px 0 0;}
+.canto-bie{bottom:12px;left:12px;border-width:0 0 2px 2px;}
+.canto-bid{bottom:12px;right:12px;border-width:0 2px 2px 0;}
+
+.envio-icone{
+  font-size:36px;margin-bottom:12px;opacity:.5;
+  animation:flutuar 3s ease-in-out infinite;
+}
+@keyframes flutuar{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+.envio-titulo{
+  font-family:var(--titulo);
+  font-size:22px;letter-spacing:4px;color:#fff;
+  margin-bottom:8px;
+}
+.envio-dica{
+  font-family:var(--mono);font-size:10px;
+  color:var(--texto2);letter-spacing:2px;
+  margin-bottom:20px;text-align:center;
+  line-height:1.8;
+}
+
+.indicadores{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
+.indicador{
+  padding:7px 16px;
+  border:1px solid var(--borda);
+  font-family:var(--mono);font-size:10px;
+  color:var(--texto3);
+  display:flex;align-items:center;gap:8px;
+  background:var(--fundo);letter-spacing:1px;
+  transition:all .3s;
+}
+.indicador.carregado{
+  border-color:rgba(40,200,112,.5);
+  color:var(--verde);
+  box-shadow:0 0 12px rgba(40,200,112,.15);
+}
+.ind-ponto{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+.btn-envio{
+  padding:10px 32px;
+  border:1px solid var(--ciano);
+  background:transparent;color:var(--ciano);
+  font-family:var(--mono);font-size:11px;
+  letter-spacing:3px;cursor:pointer;
+  text-transform:uppercase;
+  position:relative;overflow:hidden;
+  transition:color .3s;
+}
+.btn-envio::before{
+  content:'';position:absolute;inset:0;
+  background:var(--ciano);
+  transform:scaleX(0);transform-origin:left;
+  transition:transform .3s;z-index:-1;
+}
+.btn-envio:hover{color:var(--preto);}
+.btn-envio:hover::before{transform:scaleX(1);}
+
+#arquivo-input{display:none;}
+
+/* ══════════ PAINEL PRINCIPAL ══════════ */
+#painel{display:none;}
+#painel.visivel{display:block;animation:surgir .5s ease;}
+@keyframes surgir{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Título de seção */
+.sec{
+  font-family:var(--mono);font-size:10px;
+  color:var(--ciano);letter-spacing:4px;
+  text-transform:uppercase;margin-bottom:14px;
+  display:flex;align-items:center;gap:12px;
+}
+.sec::before{content:'//';color:var(--texto3);}
+.sec::after{content:'';flex:1;height:1px;background:var(--borda);}
+
+/* ══════════ VISÃO GERAL ══════════ */
+.visao-geral{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:20px;align-items:center;
+  margin-bottom:28px;
+  padding:24px;
+  background:var(--painel);
+  border:1px solid var(--borda);
+  position:relative;overflow:hidden;
+}
+.visao-geral::before{
+  content:'POSTURA DE SEGURANÇA';
+  position:absolute;top:12px;right:16px;
+  font-family:var(--mono);font-size:9px;
+  color:var(--texto3);letter-spacing:3px;
+}
+.visao-geral::after{
+  content:'';
+  position:absolute;left:0;top:0;bottom:0;
+  width:2px;
+  background:linear-gradient(180deg,var(--ciano),transparent);
+}
+
+/* Anel */
+.anel-externo{position:relative;width:200px;height:200px;flex-shrink:0;}
+.anel-externo svg{transform:rotate(-90deg);}
+.anel-centro{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.anel-numero{
+  font-family:var(--titulo);
+  font-size:56px;color:var(--vermelho);line-height:1;
+  filter:drop-shadow(0 0 12px var(--vermelho));
+}
+.anel-rotulo{
+  font-family:var(--mono);font-size:9px;
+  color:var(--texto2);letter-spacing:3px;margin-top:4px;
+}
+
+/* Grade de estatísticas */
+.grade-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+.caixa-stat{
+  padding:20px 14px;
+  background:var(--painel2);
+  border:1px solid var(--borda);
+  border-top:2px solid;
+  text-align:center;
+  position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s;
+  cursor:default;
+}
+.caixa-stat:hover{transform:translateY(-3px);}
+.caixa-stat::after{
+  content:'';position:absolute;
+  bottom:0;left:0;right:0;height:30px;
+  background:linear-gradient(transparent,rgba(0,0,0,.25));
+}
+.caixa-stat.critico{border-top-color:var(--vermelho);}
+.caixa-stat.alto{border-top-color:var(--laranja);}
+.caixa-stat.medio{border-top-color:var(--amarelo);}
+.caixa-stat.ok{border-top-color:var(--verde);}
+.caixa-stat:hover.critico{box-shadow:0 8px 24px rgba(232,51,74,.2);}
+.caixa-stat:hover.alto{box-shadow:0 8px 24px rgba(240,112,48,.15);}
+.caixa-stat:hover.ok{box-shadow:0 8px 24px rgba(40,200,112,.12);}
+
+.stat-numero{
+  font-family:var(--titulo);
+  font-size:48px;line-height:1;margin-bottom:6px;
+}
+.caixa-stat.critico .stat-numero{color:var(--vermelho);filter:drop-shadow(0 0 8px var(--vermelho));}
+.caixa-stat.alto .stat-numero{color:var(--laranja);}
+.caixa-stat.medio .stat-numero{color:var(--amarelo);}
+.caixa-stat.ok .stat-numero{color:var(--verde);filter:drop-shadow(0 0 8px var(--verde));}
+.stat-rotulo{
+  font-family:var(--mono);font-size:9px;
+  color:var(--texto2);letter-spacing:3px;text-transform:uppercase;
+}
+
+/* ══════════ CARDS DE SENSORES ══════════ */
+.grade-sensores{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
+
+.card-sensor{
+  background:var(--painel);
+  border:1px solid var(--borda);
+  overflow:hidden;
+  transition:border-color .3s,box-shadow .3s;
+  position:relative;
+}
+.card-sensor::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,var(--ciano),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.card-sensor:hover{border-color:var(--borda2);}
+.card-sensor:hover::before{opacity:1;}
+
+.sensor-cabecalho{
+  padding:14px 16px;
+  display:flex;align-items:center;gap:10px;
+  background:var(--painel2);
+  border-bottom:1px solid var(--borda);
+}
+.sensor-icone{
+  width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;border:1px solid var(--borda);
+  background:var(--fundo);flex-shrink:0;
+}
+.sensor-nome{
+  font-family:var(--titulo);
+  font-size:15px;letter-spacing:2px;color:#fff;
+  text-transform:uppercase;
+}
+.sensor-tipo{
+  font-family:var(--mono);
+  font-size:9px;color:var(--texto2);
+  letter-spacing:1px;margin-top:2px;
+}
+.sensor-etiqueta{
+  margin-left:auto;
+  font-family:var(--mono);font-size:11px;
+  padding:3px 10px;border:1px solid;letter-spacing:1px;
+}
+.etq-vermelho{color:var(--vermelho);border-color:rgba(232,51,74,.45);background:rgba(232,51,74,.07);}
+.etq-laranja{color:var(--laranja);border-color:rgba(240,112,48,.45);background:rgba(240,112,48,.07);}
+.etq-verde{color:var(--verde);border-color:rgba(40,200,112,.35);background:rgba(40,200,112,.06);}
+
+.sensor-corpo{padding:12px 16px;}
+.sensor-linha{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid rgba(0,180,220,.05);font-size:11px;
+}
+.sensor-linha:last-child{border-bottom:none;}
+.sensor-chave{font-family:var(--mono);font-size:9px;color:var(--texto2);letter-spacing:1px;}
+.sensor-valor{font-family:var(--mono);font-size:10px;font-weight:500;}
+
+/* ══════════ BARRA DE FILTROS ══════════ */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.fbtn{
+  padding:6px 16px;border:1px solid var(--borda);
+  background:transparent;color:var(--texto2);
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;
+  cursor:pointer;text-transform:uppercase;transition:all .2s;
+}
+.fbtn:hover{border-color:var(--ciano);color:var(--ciano);}
+.fbtn.f-todos{background:var(--ciano);color:var(--preto);border-color:var(--ciano);}
+.fbtn.f-critico{background:var(--vermelho);color:#fff;border-color:var(--vermelho);}
+.fbtn.f-alto{background:var(--laranja);color:#fff;border-color:var(--laranja);}
+.fbtn.f-medio{background:var(--amarelo);color:var(--preto);border-color:var(--amarelo);}
+
+/* ══════════ TABELA ══════════ */
+.tabela-wrap{overflow-x:auto;}
+.tabela{width:100%;border-collapse:collapse;font-size:11px;}
+.tabela th{
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;
+  color:var(--texto2);text-transform:uppercase;
+  padding:10px 14px;text-align:left;
+  background:var(--painel2);border:1px solid var(--borda);
+  white-space:nowrap;
+}
+.tabela td{
+  padding:11px 14px;
+  border:1px solid rgba(0,180,220,.05);
+  background:var(--painel);vertical-align:top;
+  transition:background .15s;
+}
+.tabela tr:hover td{background:var(--painel2);}
+.tabela tr.oculto{display:none;}
+
+.grav{
+  display:inline-block;font-family:var(--mono);
+  font-size:9px;font-weight:600;
+  padding:3px 8px;letter-spacing:1px;white-space:nowrap;
+}
+.grav-critico{background:rgba(232,51,74,.12);color:var(--vermelho);border:1px solid rgba(232,51,74,.45);}
+.grav-alto{background:rgba(240,112,48,.12);color:var(--laranja);border:1px solid rgba(240,112,48,.45);}
+.grav-medio{background:rgba(232,192,48,.08);color:var(--amarelo);border:1px solid rgba(232,192,48,.35);}
+.grav-baixo{background:rgba(40,200,112,.07);color:var(--verde);border:1px solid rgba(40,200,112,.3);}
+
+.sensor-tag{
+  font-family:var(--mono);font-size:9px;
+  padding:2px 7px;border:1px solid var(--borda);
+  color:var(--texto2);letter-spacing:1px;
+}
+.regra-id{font-family:var(--mono);font-size:10px;color:var(--ciano);word-break:break-all;}
+.arquivo{font-family:var(--mono);font-size:10px;color:var(--verde);white-space:nowrap;}
+.descricao{font-size:11px;color:var(--texto);line-height:1.5;max-width:360px;}
+
+/* ══════════ BOTÃO REINICIAR ══════════ */
+.btn-reiniciar{
+  padding:7px 20px;border:1px solid var(--borda);
+  background:transparent;color:var(--texto2);
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;
+  cursor:pointer;text-transform:uppercase;
+  margin-bottom:20px;transition:all .2s;
+}
+.btn-reiniciar:hover{border-color:var(--vermelho);color:var(--vermelho);}
+
+/* ══════════ RODAPÉ ══════════ */
+footer{
+  border-top:1px solid var(--borda);
+  padding:18px 0;margin-top:28px;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:8px;
+  font-family:var(--mono);font-size:10px;color:var(--texto3);
+}
+.rodape-vivo{
+  display:flex;align-items:center;gap:8px;
+  color:var(--verde);
+}
+.rodape-vivo::before{
+  content:'●';font-size:8px;
+  animation:pulsar 2s infinite;
+}
+
+/* ══════════ RESPONSIVO ══════════ */
+@media(max-width:920px){
+  .grade-sensores{grid-template-columns:1fr;}
+  .visao-geral{grid-template-columns:1fr;}
+  .grade-stats{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div class="varredura"></div>
+
+<div class="c">
+
+  <!-- CABEÇALHO -->
+  <header>
+    <div class="cab">
+      <div class="marca">
+        <div class="losango">
+          <div class="losango-externo"></div>
+          <div class="losango-interno"></div>
+          <div class="losango-centro">◈</div>
+        </div>
+        <div>
+          <div class="marca-nome">Risklayer</div>
+          <div class="marca-sub">Central de Segurança de Aplicações</div>
+        </div>
+      </div>
+      <div class="cab-meta" id="cab-meta">
+        <div class="meta-linha"><span class="ponto-verde"></span> <span class="v">SISTEMA PRONTO</span></div>
+        <div class="meta-linha">SENSORES <span class="v">TRIVY · SEMGREP · GITLEAKS</span></div>
+        <div class="meta-linha">PROTOCOLO <span class="v">SARIF 2.1.0</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- FAIXA DE TERMOS -->
+  <div class="faixa">
+    <div class="faixa-interna">
+      <span class="termo">◈ <span class="dest">ANÁLISE DE COMPOSIÇÃO</span> Bibliotecas de Terceiros</span>
+      <span class="termo">◈ <span class="dest">TESTE ESTÁTICO</span> Padrões Inseguros no Código</span>
+      <span class="termo">◈ <span class="dest">VAZAMENTO DE CREDENCIAIS</span> Senhas e Tokens Expostos</span>
+      <span class="termo">◈ <span class="dest">PROTOCOLO SARIF</span> Formato Padronizado de Resultados</span>
+      <span class="termo">◈ <span class="dest">CVE</span> Vulnerabilidades e Exposições Comuns</span>
+      <span class="termo">◈ <span class="dest">CVSS</span> Sistema de Pontuação de Vulnerabilidades</span>
+      <span class="termo">◈ <span class="dest">CI/CD</span> Integração e Entrega Contínua</span>
+      <span class="termo">◈ <span class="dest">SHIFT LEFT</span> Segurança desde o Desenvolvimento</span>
+      <span class="termo">◈ <span class="dest">ANÁLISE DE COMPOSIÇÃO</span> Bibliotecas de Terceiros</span>
+      <span class="termo">◈ <span class="dest">TESTE ESTÁTICO</span> Padrões Inseguros no Código</span>
+      <span class="termo">◈ <span class="dest">VAZAMENTO DE CREDENCIAIS</span> Senhas e Tokens Expostos</span>
+      <span class="termo">◈ <span class="dest">PROTOCOLO SARIF</span> Formato Padronizado de Resultados</span>
+      <span class="termo">◈ <span class="dest">CVE</span> Vulnerabilidades e Exposições Comuns</span>
+      <span class="termo">◈ <span class="dest">CVSS</span> Sistema de Pontuação de Vulnerabilidades</span>
+      <span class="termo">◈ <span class="dest">CI/CD</span> Integração e Entrega Contínua</span>
+      <span class="termo">◈ <span class="dest">SHIFT LEFT</span> Segurança desde o Desenvolvimento</span>
+    </div>
+  </div>
+
+  <!-- ZONA DE ENVIO -->
+  <div id="zona-envio">
+    <div class="canto canto-tse"></div>
+    <div class="canto canto-tsd"></div>
+    <div class="canto canto-bie"></div>
+    <div class="canto canto-bid"></div>
+    <div class="envio-icone">◈</div>
+    <div class="envio-titulo">Iniciar Análise de Segurança</div>
+    <div class="envio-dica">
+      Arraste os arquivos SARIF aqui ou clique para selecionar<br>
+      O sistema detecta o sensor automaticamente pelo nome do arquivo
+    </div>
+    <div class="indicadores">
+      <div class="indicador" id="ind-trivy"><span class="ind-ponto"></span>trivy-results.sarif</div>
+      <div class="indicador" id="ind-semgrep"><span class="ind-ponto"></span>semgrep-results.sarif</div>
+      <div class="indicador" id="ind-gitleaks"><span class="ind-ponto"></span>gitleaks-results.sarif</div>
+    </div>
+    <button class="btn-envio" onclick="document.getElementById('arquivo-input').click()">Selecionar Arquivos</button>
+    <input type="file" id="arquivo-input" multiple accept=".sarif,.json">
+  </div>
+
+  <!-- PAINEL PRINCIPAL -->
+  <div id="painel">
+    <button class="btn-reiniciar" onclick="reiniciar()">↺ Nova Análise</button>
+
+    <!-- VISÃO GERAL -->
+    <div class="visao-geral">
+      <div class="anel-externo">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(0,180,220,.07)" stroke-width="12"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(0,180,220,.13)" stroke-width="12"
+            stroke-dasharray="502" stroke-dashoffset="502"
+            id="anel-rastro"
+            style="transition:stroke-dashoffset 1.3s cubic-bezier(.4,0,.2,1)"/>
+          <circle id="anel-fill" cx="100" cy="100" r="80" fill="none"
+            stroke="var(--vermelho)" stroke-width="3"
+            stroke-dasharray="502" stroke-dashoffset="502" stroke-linecap="round"
+            style="transition:stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 0 10px var(--vermelho))"/>
+        </svg>
+        <div class="anel-centro">
+          <div class="anel-numero" id="total">0</div>
+          <div class="anel-rotulo">ACHADOS</div>
+        </div>
+      </div>
+      <div class="grade-stats">
+        <div class="caixa-stat critico"><div class="stat-numero" id="n-critico">0</div><div class="stat-rotulo">Crítico</div></div>
+        <div class="caixa-stat alto"><div class="stat-numero" id="n-alto">0</div><div class="stat-rotulo">Alto</div></div>
+        <div class="caixa-stat medio"><div class="stat-numero" id="n-medio">0</div><div class="stat-rotulo">Médio</div></div>
+        <div class="caixa-stat ok"><div class="stat-numero" id="n-sensores">0</div><div class="stat-rotulo">Sensores OK</div></div>
+      </div>
+    </div>
+
+    <!-- SENSORES -->
+    <div class="sec">Sensores Ativos</div>
+    <div class="grade-sensores" id="grade-sensores"></div>
+
+    <!-- ACHADOS -->
+    <div class="sec">Painel de Achados</div>
+    <div class="filtros">
+      <button class="fbtn f-todos" onclick="filtrar(this,'todos')">Todos</button>
+      <button class="fbtn" onclick="filtrar(this,'CRITICO','f-critico')">Crítico</button>
+      <button class="fbtn" onclick="filtrar(this,'ALTO','f-alto')">Alto</button>
+      <button class="fbtn" onclick="filtrar(this,'MEDIO','f-medio')">Médio</button>
+      <button class="fbtn" onclick="filtrar(this,'SCA','f-todos')">Análise SCA</button>
+      <button class="fbtn" onclick="filtrar(this,'SAST','f-todos')">Teste SAST</button>
+      <button class="fbtn" onclick="filtrar(this,'SEGREDOS','f-todos')">Credenciais</button>
+    </div>
+    <div class="tabela-wrap">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th>Sensor</th>
+            <th>Gravidade</th>
+            <th>Regra / CVE</th>
+            <th>Arquivo</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody id="corpo-tabela"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <div class="rodape-vivo">Sistema Ativo — risklayer-aspm</div>
+    <div id="rodape-ferramentas">Aguardando arquivos SARIF...</div>
+    <div id="rodape-data">—</div>
+  </footer>
+
+</div>
+
+<script>
+const estado = { trivy:null, semgrep:null, gitleaks:null };
+
+// ARRASTAR E SOLTAR
+const zona = document.getElementById('zona-envio');
+zona.addEventListener('dragover', e=>{e.preventDefault();zona.classList.add('arrastando');});
+zona.addEventListener('dragleave', ()=>zona.classList.remove('arrastando'));
+zona.addEventListener('drop', e=>{e.preventDefault();zona.classList.remove('arrastando');carregar([...e.dataTransfer.files]);});
+zona.addEventListener('click', e=>{
+  if(!e.target.classList.contains('btn-envio')&&e.target.id!=='arquivo-input')
+    document.getElementById('arquivo-input').click();
+});
+document.getElementById('arquivo-input').addEventListener('change', e=>carregar([...e.target.files]));
+
+function carregar(arquivos){
+  arquivos.forEach(arq=>{
+    const leitor = new FileReader();
+    leitor.onload = ev=>{
+      try{
+        const dados = JSON.parse(ev.target.result);
+        const sensor = detectar(arq.name, dados);
+        if(sensor){
+          estado[sensor] = dados;
+          document.getElementById('ind-'+sensor).classList.add('carregado');
+        }
+        if(estado.trivy||estado.semgrep||estado.gitleaks) renderizar();
+      }catch(e){alert('Erro ao ler '+arq.name);}
+    };
+    leitor.readAsText(arq);
+  });
+}
+
+function detectar(nome, dados){
+  const n = nome.toLowerCase();
+  if(n.includes('trivy')) return 'trivy';
+  if(n.includes('semgrep')) return 'semgrep';
+  if(n.includes('gitleaks')) return 'gitleaks';
+  try{
+    const t = dados.runs[0].tool.driver.name.toLowerCase();
+    if(t.includes('trivy')) return 'trivy';
+    if(t.includes('semgrep')) return 'semgrep';
+    if(t.includes('gitleaks')) return 'gitleaks';
+  }catch(e){}
+  return null;
+}
+
+function obterResultados(d){
+  if(!d) return [];
+  const out = [];
+  for(const run of (d.runs||[])) for(const r of (run.results||[])){
+    const locs = r.locations||[];let arq='',linha='';
+    if(locs[0]){
+      const pl = locs[0].physicalLocation||{};
+      arq = (pl.artifactLocation||{}).uri||'';
+      linha = ((pl.region||{}).startLine||'');
+      arq = arq.split(/[/\\]/).pop();
+    }
+    out.push({regra:r.ruleId||'',nivel:r.level||'warning',msg:(r.message||{}).text||'',arq,linha});
+  }
+  return out;
+}
+
+function gravidade(r, sensor){
+  const m = (r.msg||'').toUpperCase();
+  if(m.includes('SEVERITY: CRITICAL')) return 'CRITICO';
+  if(m.includes('SEVERITY: HIGH')) return 'ALTO';
+  if(m.includes('SEVERITY: MEDIUM')) return 'MEDIO';
+  if(sensor==='SEGREDOS') return 'ALTO';
+  if(sensor==='SAST') return 'MEDIO';
+  return r.nivel==='error'?'ALTO':'MEDIO';
+}
+
+function classeGrav(g){
+  return{CRITICO:'grav-critico',ALTO:'grav-alto',MEDIO:'grav-medio',BAIXO:'grav-baixo'}[g]||'grav-baixo';
+}
+
+function contarAnimar(el, alvo){
+  let v=0; const passo=Math.ceil(alvo/20);
+  const t=setInterval(()=>{v=Math.min(v+passo,alvo);el.textContent=v;if(v>=alvo)clearInterval(t);},40);
+}
+
+function renderizar(){
+  const tr = obterResultados(estado.trivy).map(r=>({...r,sensor:'SCA',grav:gravidade(r,'SCA')}));
+  const sm = obterResultados(estado.semgrep).map(r=>({...r,sensor:'SAST',grav:gravidade(r,'SAST')}));
+  const gl = obterResultados(estado.gitleaks).map(r=>({...r,sensor:'SEGREDOS',grav:gravidade(r,'SEGREDOS')}));
+  const todos = [...tr,...sm,...gl];
+
+  const total = todos.length;
+  const critico = todos.filter(r=>r.grav==='CRITICO').length;
+  const alto = todos.filter(r=>r.grav==='ALTO').length;
+  const medio = todos.filter(r=>r.grav==='MEDIO').length;
+  const sensOk = [estado.trivy,estado.semgrep,estado.gitleaks].filter(Boolean).length;
+
+  contarAnimar(document.getElementById('total'), total);
+  contarAnimar(document.getElementById('n-critico'), critico);
+  contarAnimar(document.getElementById('n-alto'), alto);
+  contarAnimar(document.getElementById('n-medio'), medio);
+  contarAnimar(document.getElementById('n-sensores'), sensOk);
+
+  // Anel
+  const circ = 2*Math.PI*80;
+  const fill = total>0 ? Math.min(total/20,1)*circ : 0;
+  setTimeout(()=>{
+    document.getElementById('anel-fill').style.strokeDashoffset = circ-fill;
+    document.getElementById('anel-rastro').style.strokeDashoffset = circ-(Math.min(total/20,1)*circ*.9);
+  },200);
+
+  // Cabeçalho
+  const agora = new Date();
+  document.getElementById('cab-meta').innerHTML=`
+    <div class="meta-linha"><span class="ponto-verde"></span><span class="v alerta">⚠ ${total} ACHADOS DETECTADOS</span></div>
+    <div class="meta-linha">SENSORES <span class="v">${sensOk}/3 OPERACIONAIS</span></div>
+    <div class="meta-linha">ANÁLISE <span class="v">${agora.toLocaleTimeString('pt-BR')} BRT</span></div>`;
+
+  // Cards de sensores
+  const cards = [];
+  if(estado.trivy){
+    const c=tr.filter(r=>r.grav==='CRITICO').length, a=tr.filter(r=>r.grav==='ALTO').length;
+    const pkgs=[...new Set(tr.map(r=>r.msg.match(/Package: (\S+)/)?.[1]).filter(Boolean))];
+    cards.push(`<div class="card-sensor">
+      <div class="sensor-cabecalho">
+        <div class="sensor-icone">◈</div>
+        <div><div class="sensor-nome">Trivy · SCA</div><div class="sensor-tipo">Análise de Composição de Software</div></div>
+        <div class="sensor-etiqueta etq-vermelho">${tr.length} CVEs</div>
+      </div>
+      <div class="sensor-corpo">
+        <div class="sensor-linha"><span class="sensor-chave">CRÍTICO</span><span class="sensor-valor" style="color:var(--vermelho)">${c}</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">ALTO</span><span class="sensor-valor" style="color:var(--laranja)">${a}</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">PACOTES</span><span class="sensor-valor">${pkgs.slice(0,4).join(' · ')||'—'}</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">SAÍDA</span><span class="sensor-valor" style="color:var(--ciano)">SARIF 2.1.0</span></div>
+      </div></div>`);
+  }
+  if(estado.semgrep){
+    let regras=0;try{regras=estado.semgrep.runs[0].tool.driver.rules.length;}catch(e){}
+    cards.push(`<div class="card-sensor">
+      <div class="sensor-cabecalho">
+        <div class="sensor-icone">◈</div>
+        <div><div class="sensor-nome">Semgrep · SAST</div><div class="sensor-tipo">Teste Estático de Segurança</div></div>
+        <div class="sensor-etiqueta etq-laranja">${sm.length} achados</div>
+      </div>
+      <div class="sensor-corpo">
+        <div class="sensor-linha"><span class="sensor-chave">ACHADOS</span><span class="sensor-valor" style="color:var(--amarelo)">${sm.length}</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">REGRAS</span><span class="sensor-valor">${regras}</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">GRAVIDADE</span><span class="sensor-valor">Médio</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">SAÍDA</span><span class="sensor-valor" style="color:var(--ciano)">SARIF 2.1.0</span></div>
+      </div></div>`);
+  }
+  if(estado.gitleaks){
+    let padroes=0;try{padroes=estado.gitleaks.runs[0].tool.driver.rules.length;}catch(e){}
+    const etq = gl.length===0?'etq-verde':'etq-laranja';
+    const txt = gl.length===0?'LIMPO':`${gl.length} vazamento${gl.length>1?'s':''}`;
+    cards.push(`<div class="card-sensor">
+      <div class="sensor-cabecalho">
+        <div class="sensor-icone">◈</div>
+        <div><div class="sensor-nome">Gitleaks · Segredos</div><div class="sensor-tipo">Detecção de Credenciais Expostas</div></div>
+        <div class="sensor-etiqueta ${etq}">${txt}</div>
+      </div>
+      <div class="sensor-corpo">
+        <div class="sensor-linha"><span class="sensor-chave">VAZAMENTOS</span><span class="sensor-valor" style="color:${gl.length>0?'var(--vermelho)':'var(--verde)'}">${gl.length}</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">PADRÕES</span><span class="sensor-valor">${padroes}</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">GRAVIDADE</span><span class="sensor-valor">Alto</span></div>
+        <div class="sensor-linha"><span class="sensor-chave">SAÍDA</span><span class="sensor-valor" style="color:var(--ciano)">SARIF 2.1.0</span></div>
+      </div></div>`);
+  }
+  document.getElementById('grade-sensores').innerHTML = cards.join('');
+
+  // Tabela
+  document.getElementById('corpo-tabela').innerHTML = todos.map(r=>`
+    <tr data-grav="${r.grav}" data-sensor="${r.sensor}">
+      <td><span class="sensor-tag">${r.sensor}</span></td>
+      <td><span class="grav ${classeGrav(r.grav)}">${r.grav}</span></td>
+      <td><span class="regra-id">${(r.regra||'').substring(0,55)}${(r.regra||'').length>55?'…':''}</span></td>
+      <td><span class="arquivo">${r.arq}${r.linha?':'+r.linha:''}</span></td>
+      <td><span class="descricao">${(r.msg.split('\n')[0]||'').substring(0,100)}${(r.msg||'').length>100?'…':''}</span></td>
+    </tr>`).join('');
+
+  // Rodapé
+  const ferramentas=[];
+  if(estado.trivy){try{ferramentas.push('Trivy '+estado.trivy.runs[0].tool.driver.version);}catch(e){ferramentas.push('Trivy');}}
+  if(estado.semgrep){try{ferramentas.push('Semgrep '+estado.semgrep.runs[0].tool.driver.version);}catch(e){ferramentas.push('Semgrep');}}
+  if(estado.gitleaks){try{ferramentas.push('Gitleaks '+estado.gitleaks.runs[0].tool.driver.version);}catch(e){ferramentas.push('Gitleaks');}}
+  document.getElementById('rodape-ferramentas').textContent = ferramentas.join(' · ');
+  document.getElementById('rodape-data').textContent = agora.toLocaleDateString('pt-BR');
+
+  zona.classList.add('pronto');
+  document.getElementById('painel').classList.add('visivel');
+}
+
+function filtrar(btn, f, cls='f-todos'){
+  document.querySelectorAll('.fbtn').forEach(b=>b.className='fbtn');
+  btn.classList.add(cls);
+  document.querySelectorAll('#corpo-tabela tr').forEach(linha=>{
+    const mostrar = f==='todos'||linha.dataset.grav===f||linha.dataset.sensor===f;
+    linha.classList.toggle('oculto',!mostrar);
+  });
+}
+
+function reiniciar(){
+  estado.trivy=estado.semgrep=estado.gitleaks=null;
+  ['trivy','semgrep','gitleaks'].forEach(s=>document.getElementById('ind-'+s).classList.remove('carregado'));
+  zona.classList.remove('pronto');
+  document.getElementById('painel').classList.remove('visivel');
+  document.getElementById('arquivo-input').value='';
+  document.getElementById('cab-meta').innerHTML=`
+    <div class="meta-linha"><span class="ponto-verde"></span><span class="v">SISTEMA PRONTO</span></div>
+    <div class="meta-linha">SENSORES <span class="v">TRIVY · SEMGREP · GITLEAKS</span></div>
+    <div class="meta-linha">PROTOCOLO <span class="v">SARIF 2.1.0</span></div>`;
+}
+</script>
+</body>
+</html>
